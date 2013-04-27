@@ -198,14 +198,23 @@
 
 ;;; Pattern Utilities
 
+(define-condition non-linear-pattern-error (error)
+  ((pattern :initarg :pattern)
+   (irregular-variable :initarg :irregular-variable))
+  (:report (lambda (c s)
+			 (format s "Non-linear pattern: ~S , Variable: ~S"
+					 (unparse-pattern (slot-value c 'pattern))
+					 (slot-value c 'irregular-variable)))))
+
 (defun pattern-variables (pattern)
   "Returns the set of variables in PATTERN. If PATTERN is not linear,
 an error will be raised."
   (flet ((check (vars)
            (loop for var in vars
                  if (find var seen)
-                   do (error "Non-linear pattern: ~S"
-                             (unparse-pattern pattern))
+                   do (error 'non-linear-pattern-error
+                             :pattern pattern
+							 :irregular-variable var)
                  collect var into seen
                  finally (return vars))))
     (typecase pattern
@@ -527,7 +536,10 @@ Examples:
 
 ;;; Pattern Specifier Parser
 
-(defgeneric unparse-pattern (pattern))
+(defgeneric unparse-pattern (pattern)
+  (:documentation "utilised to pretty-print pattern object.
+reconstruct an S-expression of the given pattern acceptable as an 
+argument of MATCH."))
 
 (defmethod unparse-pattern ((pattern variable-pattern))
   (or (variable-pattern-name pattern) '_))
