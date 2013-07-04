@@ -26,6 +26,7 @@ specifiers are defined as follows:
                         | derived-pattern
     
     constant-pattern ::= t | nil
+                       | keyword
                        | atom-except-symbol
                        | (quote VALUE)
     
@@ -308,7 +309,7 @@ are some builtin dervied patterns as below:
 
 #### LIST
 
-Expansion of LIST derived patterns=
+Expansion of LIST derived patterns:
 
     (list a b c) => (cons a (cons b (cons c nil)))
 
@@ -316,7 +317,7 @@ Expansion of LIST derived patterns=
 
 Expansion of LIST* derived patterns:
 
-    (list a b c) => (cons a (cons b c))
+    (list* a b c) => (cons a (cons b c))
 
 #### SATISFIES
 
@@ -337,7 +338,20 @@ Expansion of EQ, EQL, EQUAL, EQUALP derived patterns:
 
 Expansion of TYPE derived patterns:
 
-    (TYPE type) => (when (typep * 'type))
+    (TYPE type) => (guard it (typep it 'type))
+
+Quasiquotation
+--------------
+
+You may want to use a quasiquote in a pattern specifier like:
+
+    (match '(1 2 3 4)
+      (`(1 ,x ,@y) (list x y)))
+
+To do so, you need to use a specific quasiquote reader, for example
+[fare-quasiquote](http://cliki.net/fare-quasiquote) with loading
+fare-quasiquote-optima system, because an expanded form of a
+quasiquote reader is not standardized.
 
 [Package] optima
 ----------------
