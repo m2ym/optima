@@ -118,8 +118,13 @@
   (is-not-match '(:a 1 :b 2) (property :b 3))
   ;; vector
   (is-match (vector 1 2) (vector 1 2))
+  (is-match (vector 1 2 3) (vector* 1 (vector 2 3)))
   ;; simple-vector
   (is-match (vector 1 2) (simple-vector 1 2))
+  (is-match (vector 1 2 3) (simple-vector* 1 (simple-vector 2 3)))
+  ;; sequence
+  (is-match "abc" (sequence #\a #\b #\c))
+  (is-match "abc" (sequence* #\a "bc"))
   ;; class
   (let ((person (make-instance 'person :name "Bob" :age 31)))
     (is (equal (match person

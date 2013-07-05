@@ -204,6 +204,54 @@ Examples:
       ((simple-vector a b) (+ a b)))
     => 3
 
+#### VECTOR*
+
+Syntax:
+
+    vector*-constructor-pattern ::= (vector* PATTERN*)
+
+Examples:
+
+    (match #(1 2 3)
+      ((vector* a b) (list a b)))
+    => (1 #(2 3))
+
+#### SIMPLE-VECTOR*
+
+Syntax:
+
+    simple-vector*-constructor-pattern ::= (simple-vector* PATTERN*)
+
+Examples:
+
+    (match #(1 2 3)
+      ((simple-vector* a b) (list a b)))
+    => (1 #(2 3))
+
+#### SEQUENCE
+
+Syntax:
+
+    sequence-constructor-pattern ::= (sequence PATTERN*)
+
+Examples:
+
+    (match \"abc\"
+      ((sequence a b c) (list a b c)))
+    => (#\\a #\\b #\\c)
+
+#### SEQUENCE*
+
+Syntax:
+
+    sequence*-constructor-pattern ::= (sequence* PATTERN*)
+
+Examples:
+
+    (match \"abc\"
+      ((sequence* a b) (list a b)))
+    => (#\\a \"bc\"))
+
 #### CLASS
 
 Matches an instance of a given subclass of standard-class, as well as

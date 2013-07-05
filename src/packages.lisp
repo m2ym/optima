@@ -79,6 +79,22 @@
            #:simple-vector-pattern-subpatterns
            #:make-simple-vector-pattern
 
+           #:vector*-pattern
+           #:vector*-pattern-subpatterns
+           #:make-vector*-pattern
+
+           #:simple-vector*-pattern
+           #:simple-vector*-pattern-subpatterns
+           #:make-simple-vector*-pattern
+
+           #:sequence-pattern
+           #:sequence-pattern-subpatterns
+           #:make-sequence-pattern
+
+           #:sequence*-pattern
+           #:sequence*-pattern-subpatterns
+           #:make-sequence*-pattern
+
            #:class-pattern
            #:class-pattern-subpatterns
            #:class-pattern-class-name
@@ -111,6 +127,7 @@
 (defpackage :optima
   (:use :cl :optima.core)
   (:import-from :alexandria
+                #:length=
                 #:ensure-car
                 #:ensure-list
                 #:mappend
@@ -142,6 +159,9 @@
            #:place
            #:guard
            #:property
+           #:vector*
+           #:simple-vector*
+           #:sequence*
            #:defpattern))
 
 (defpackage :optima.extra
