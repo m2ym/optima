@@ -209,7 +209,7 @@ Examples:
 
 Syntax:
 
-    vector*-constructor-pattern ::= (vector* PATTERN*)
+    vector*-constructor-pattern ::= (vector* PATTERN+)
 
 Examples:
 
@@ -221,7 +221,7 @@ Examples:
 
 Syntax:
 
-    simple-vector*-constructor-pattern ::= (simple-vector* PATTERN*)
+    simple-vector*-constructor-pattern ::= (simple-vector* PATTERN+)
 
 Examples:
 
@@ -245,7 +245,7 @@ Examples:
 
 Syntax:
 
-    sequence*-constructor-pattern ::= (sequence* PATTERN*)
+    sequence*-constructor-pattern ::= (sequence* PATTERN+)
 
 Examples:
 

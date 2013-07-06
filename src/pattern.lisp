@@ -505,7 +505,7 @@ Examples:
 (defgeneric parse-constructor-pattern (name &rest args))
 
 (defmethod parse-constructor-pattern ((name (eql 'cons)) &rest args)
-  (unless (= (length args) 2)
+  (unless (length= 2 args)
     (error "Malformed pattern: ~S" (list* 'cons args)))
   (apply #'make-cons-pattern (mapcar #'parse-pattern args)))
 
@@ -524,15 +524,24 @@ Examples:
   (apply #'make-simple-vector-pattern (mapcar #'parse-pattern args)))
 
 (defmethod parse-constructor-pattern ((name (eql 'vector*)) &rest args)
+  (unless args
+    (error "Malformed pattern: ~S: invalid number of arguments: ~D"
+           (list* name args) (length args)))
   (apply #'make-vector*-pattern (mapcar #'parse-pattern args)))
 
 (defmethod parse-constructor-pattern ((name (eql 'simple-vector*)) &rest args)
+  (unless args
+    (error "Malformed pattern: ~S: invalid number of arguments: ~D"
+           (list* name args) (length args)))
   (apply #'make-simple-vector*-pattern (mapcar #'parse-pattern args)))
 
 (defmethod parse-constructor-pattern ((name (eql 'sequence)) &rest args)
   (apply #'make-sequence-pattern (mapcar #'parse-pattern args)))
 
 (defmethod parse-constructor-pattern ((name (eql 'sequence*)) &rest args)
+  (unless args
+    (error "Malformed pattern: ~S: invalid number of arguments: ~D"
+           (list* name args) (length args)))
   (apply #'make-sequence*-pattern (mapcar #'parse-pattern args)))
 
 (defun parse-class-pattern (class-name &rest slot-specs)

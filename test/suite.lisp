@@ -29,6 +29,17 @@
     ; (check-roundtrip _) does not roundtrip, but that's probably OK.
     (check-roundtrip x)))
 
+(test syntax-errors
+  ;; cons requires exactly two arguments
+  (signals error (parse-pattern '(cons)))
+  (signals error (parse-pattern '(cons 1)))
+  (signals error (parse-pattern '(cons 1 2 3)))
+  ;; these require at least one argument
+  (signals error (parse-pattern '(list*)))
+  (signals error (parse-pattern '(vector*)))
+  (signals error (parse-pattern '(simple-vector*)))
+  (signals error (parse-pattern '(sequence*))))
+
 ;;; Pattern matching
 
 (defmacro is-match (arg pattern)
