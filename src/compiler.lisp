@@ -64,8 +64,9 @@
                                for subpatterns = (constructor-pattern-subpatterns pattern)
                                collect `((,@subpatterns ,.rest) ,.then))
                         ,else))
-         (wrap #'identity))
-    (multiple-value-bind (predicate-form bind-var-p)
+         (wrap #'identity)
+	 (then-wrap #'identity))
+    (multiple-value-bind (predicate-form bind-var-p local-declaration-bodies)
         (destructor-predicate-form pattern var)
       ;; FIXME: BIND-VAR-P is ugly...
       (when bind-var-p
@@ -74,6 +75,13 @@
           (setq wrap (lambda (form) `(let ((,new-var ,predicate)) ,form))
                 var new-var
                 predicate-form new-var)))
+      (when local-declaration-bodies
+	(setq then-wrap
+	      (lambda (form)
+		`(locally
+		   ,@(mapcar (lambda (body) `(declare ,body))
+			     local-declaration-bodies)
+		   ,form))))
       (loop for i from 0 below arity
             for new-var in new-vars
             for form in (destructor-forms pattern var)
@@ -96,7 +104,7 @@
                (return
                  (funcall wrap
                           `(%if ,predicate-form
-                                ,then
+                                ,(funcall then-wrap then)
                                 ,else)))))))
 
 (defun compile-match-or-group (vars clauses else)

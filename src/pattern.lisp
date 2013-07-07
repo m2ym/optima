@@ -167,7 +167,9 @@
               (class-pattern-slot-names y))))
 
 (defmethod destructor-predicate-form ((pattern class-pattern) var)
-  `(typep ,var ',(class-pattern-class-name pattern)))
+  (values `(typep ,var ',(class-pattern-class-name pattern))
+	  nil
+	  `((type ,(class-pattern-class-name pattern) ,var))))
 
 (defmethod destructor-forms ((pattern class-pattern) var)
   (loop for slot-name in (class-pattern-slot-names pattern)
@@ -198,16 +200,43 @@
 
 ;;; Pattern Utilities
 
+(define-condition non-linear-pattern-error (error)
+  ((pattern :initarg :pattern)
+   (violated-variable :initarg :violated-variable))
+  (:report (lambda (c s)
+	     (format s "Non-linear pattern: ~S , Variable: ~S"
+		     (unparse-pattern (slot-value c 'pattern))
+		     (slot-value c 'violated-variable)))))
+
 (defun pattern-variables (pattern)
   "Returns the set of variables in PATTERN. If PATTERN is not linear,
-an error will be raised."
+a non-linear-pattern-error will be signalled.
+Suported Restarts:
+ (store-value pattern) --- Replace the violated value with
+ the given variable and continue searching for violation. If the given variable
+violates again, then signals an error again.
+ (continue) --- Ignores the violation for some reason. The consequence is undefined
+and compilation might fail afterward."
   (flet ((check (vars)
            (loop for var in vars
-                 if (find var seen)
-                   do (error "Non-linear pattern: ~S"
-                             (unparse-pattern pattern))
-                 collect var into seen
-                 finally (return vars))))
+	      do (tagbody
+		    check-start
+		    (restart-bind ((store-value
+				    #'(lambda (new-var)
+					(setf var new-var)
+					(go check-start)))
+				   (continue
+				    #'(lambda ()
+					(warn "Ignored the violation. The consequence is undefined~
+                                         and compilation might fail afterward.")
+					(go end))))
+		      (when (find var seen)
+			(error 'non-linear-pattern-error
+			       :pattern pattern
+			       :violated-variable var)))
+		    end)
+	      collect var into seen
+	      finally (return seen))))
     (typecase pattern
       (variable-pattern
        (if-let ((name (variable-pattern-name pattern)))
