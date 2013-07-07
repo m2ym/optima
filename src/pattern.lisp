@@ -167,7 +167,9 @@
               (class-pattern-slot-names y))))
 
 (defmethod destructor-predicate-form ((pattern class-pattern) var)
-  `(typep ,var ',(class-pattern-class-name pattern)))
+  (values `(typep ,var ',(class-pattern-class-name pattern))
+	  nil
+	  `((type ,(class-pattern-class-name pattern) ,var))))
 
 (defmethod destructor-forms ((pattern class-pattern) var)
   (loop for slot-name in (class-pattern-slot-names pattern)
