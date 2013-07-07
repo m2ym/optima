@@ -206,7 +206,7 @@
   (:report (lambda (c s)
 	     (format s "Non-linear pattern: ~S , Variable: ~S"
 		     (unparse-pattern (slot-value c 'pattern))
-		     (slot-value c 'irregular-variable)))))
+		     (slot-value c 'violated-variable)))))
 
 (defun pattern-variables (pattern)
   "Returns the set of variables in PATTERN. If PATTERN is not linear,
