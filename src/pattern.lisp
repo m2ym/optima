@@ -33,7 +33,7 @@
 
 (defstruct (guard-pattern (:include complex-pattern)
                           (:constructor make-guard-pattern (subpattern test-form
-                                                            &aux (subpatterns (list subpattern)))))
+								       &aux (subpatterns (list subpattern)))))
   test-form)
 
 (defun guard-pattern-subpattern (pattern)
@@ -54,7 +54,9 @@
 
 (defstruct (constructor-pattern (:include complex-pattern)))
 
-(defun constructor-pattern-arity (pattern)
+(defgeneric constructor-pattern-arity (pattern))
+
+(defmethod constructor-pattern-arity (pattern)
   (length (constructor-pattern-subpatterns pattern)))
 
 (defstruct (cons-pattern (:include constructor-pattern)
@@ -122,6 +124,226 @@
 
 (defmethod destructor-forms ((pattern property-pattern) var)
   (list `(car ,var)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; array
+
+;;;; utiity
+
+;; this may be used in some time (for patterns in dimension spec)
+;; (defun variable->* (dimensions)
+;;   (mapcar (lambda (dim) (if (not (typep dim 'fixnum)) '* dim)) dimensions))
+
+(defun many-underscores-p (sym)
+  (and (symbolp sym)
+       (let ((name (symbol-name sym)))
+	 (and (< 1 (length name))
+	      (every (lambda (char) (char= #\_ char)) name)))))
+
+(defun underscore-p (sym)
+  (and (symbolp sym)
+       (string= (symbol-name sym) "_")))
+
+(defun numbered-underscore-p (sym)
+  (ppcre:register-groups-bind (numstr) ("_+([0-9]*)_+" (symbol-name sym))
+    (unless (string= numstr "")
+      (parse-integer numstr))))
+
+;;;; structure and methods
+
+(defstruct (array-pattern
+	     (:include constructor-pattern)
+	     (:constructor make-array-pattern
+			   (dimensions
+			    element-type
+			    subpatterns
+			    subpattern-specs)))
+  dimensions
+  subpattern-specs
+  element-type)
+
+(defmethod parse-constructor-pattern ((name (eql 'array)) &rest args)
+  (destructuring-bind (dimensions &key
+				  (element-type '*)
+				  (contents '_)) args
+    (let ((dimensions (ensure-list dimensions)))
+      (let ((parsed-patterns (parse-array-subpattern 
+			      dimensions contents)))
+	(let ((subpattern-specs (mapcar #'car parsed-patterns))
+	      (subpatterns (mapcar #'cdr parsed-patterns)))
+	  (make-array-pattern dimensions
+			      element-type
+			      subpatterns
+			      subpattern-specs))))))
+
+(defun parse-array-subpattern (dimensions patterns)
+  (if (underscore-p patterns)
+      nil
+      (%parse-array-subpattern-rec
+       dimensions patterns nil 0 nil)))
+
+;; dimensions ex) '(3 3 3)
+;; position = '(2 2),  count = 3
+;;    ==> (aref a 3 2 2) (reversed ordering)
+
+(defun %parse-array-subpattern-rec (dimensions patterns
+				    position count
+				    parsed-patterns)
+  (let ((dim (nth (length position) dimensions)))
+    (cond 
+      ((typep dim 'fixnum)
+       (%parse-array-subp-with-dim
+	dimensions patterns position count parsed-patterns))
+      ((eq '* dim)
+       ;; currently, does not support `from the back' reference using __
+       (%parse-array-subp-with-*
+	dimensions patterns position count parsed-patterns))
+      (t (error "dimension specifier should be~
+                 a fixnum or a symbol `*' . : ~a" dim)))))
+
+(defun %parse-array-subp-with-dim (dimensions patterns
+				   position count
+				   parsed-patterns
+				   &optional __-used)
+  (if (null patterns)
+      parsed-patterns
+      (let ((limit (nth (length position) dimensions)))
+	(when (< limit count)
+	  (error "in ~a:~%~
+            the number of patterns exceeded the dimension limit specified.~%~
+            count: ~a limit: ~a = ~a"
+		 patterns
+		 count
+		 `(nth (length ',position) ',dimensions)
+		 limit))
+	(let ((head (car patterns)))
+	  (cond
+	    ((many-underscores-p head)
+	     ;; __ 横にたくさん動く
+	     (if __-used
+		 (error "in ~a:~%~
+              __ (many-underscores directive) should not appear twice."
+			patterns)
+		 (let ((remains (- limit (length (cdr patterns)))))
+		   (%parse-array-subp-with-dim
+		    dimensions (cdr patterns)
+		    position remains parsed-patterns t))))
+	    
+	    ((underscore-p head)
+	     ;; _ 横に一つ動く
+	     (%parse-array-subp-with-dim
+	      dimensions (cdr patterns)
+	      position (1+ count) parsed-patterns __-used))
+	    
+	    ((numbered-underscore-p head)
+	     ;; _ 横にn個動く
+	     (%parse-array-subp-with-dim
+	      dimensions (cdr patterns)
+	      position (+ count (numbered-underscore-p head))
+	      parsed-patterns __-used))
+
+	    ((null head)
+	     ;; 最後までパースした
+	     (when (< count limit)
+	       (warn "the number of patterns (~a) was insufficient~
+                  compared with the specified dimensions."
+		     count))
+	     parsed-patterns)
+	    
+	    ((consp head)
+	     ;; 枝を読んでから横に動く
+	     (%parse-array-subp-with-dim
+	      dimensions (cdr patterns)
+	      position (1+ count)
+	      (%parse-array-subpattern-rec
+	       dimensions head
+	       (cons count position) 0
+	       parsed-patterns)
+	      __-used))
+	    ((= (length dimensions) (1+ (length position)))
+	     ;; parsed throughout the branch to the leaf node
+	     ;; 一つパースして横に動く
+	     (%parse-array-subp-with-dim
+	      dimensions (cdr patterns)
+	      position (1+ count)
+	      (cons (cons (reverse (cons count position))
+			  (parse-pattern head))
+		    parsed-patterns) __-used))
+	    (t (error "invalid pattern. _, __ or (patterns*) expected. ~%~a"
+		      patterns)))))))
+
+(defun %parse-array-subp-with-* (dimensions patterns
+				 position count
+				 parsed-patterns)
+
+  (if (null patterns)
+      parsed-patterns
+      (let ((head (car patterns)))
+	(cond
+	  ((many-underscores-p head)
+	   (if (cdr patterns)
+	       (error "in ~a:~%~
+              __ (many-underscores directive) should only appear ~
+              as the last pattern of the clause ~
+              if the dimension is unspecified (*) ."
+		      patterns)
+	       parsed-patterns))
+	  
+	  ((underscore-p head)
+	   ;; _ 横に一つ動く
+	   (%parse-array-subp-with-*
+	    dimensions (cdr patterns)
+	    position (1+ count) parsed-patterns))
+	  
+	  ((numbered-underscore-p head)
+	     ;; _ 横にn個動く
+	     (%parse-array-subp-with-*
+	      dimensions (cdr patterns)
+	      position (+ count (numbered-underscore-p head))
+	      parsed-patterns))
+	  
+	  ((null head) parsed-patterns) ; 最後までパースした
+	  
+	  ((consp head)
+	   ;; 枝をすべて読んでから横に動く
+	   (%parse-array-subp-with-*
+	    dimensions (cdr patterns)
+	    position (1+ count)
+	    (%parse-array-subpattern-rec
+	     dimensions head
+	     (cons count position) 0
+	     parsed-patterns)))
+
+	  ((= (length dimensions) (1+ (length position)))
+	   ;; parsed throughout the branch to the leaf node
+	   ;; 一つパースして横に動く
+	   (%parse-array-subp-with-*
+	    dimensions (cdr patterns)
+	    position (1+ count)
+	    (cons (cons (reverse (cons count position))
+			(parse-pattern head))
+		  parsed-patterns)))
+
+	  (t (error "invalid pattern. _, __ or (patterns*) expected. ~%~a"
+		    patterns))))))
+
+(defmethod destructor-forms ((pattern array-pattern) var)
+  ;; ここをdimension を使うように変更
+  ;; parse-array-subpattern の順序と同じになるように
+  (loop for subscript in (array-pattern-subpattern-specs pattern)
+     collect `(aref ,var ,@subscript)))
+
+(defmethod destructor-equal ((x array-pattern)
+			     (y array-pattern))
+  (and (equalp (array-pattern-dimensions x)
+	       (array-pattern-dimensions y))
+       (equalp (array-pattern-element-type x)
+	       (array-pattern-element-type y))))
+
+(defmethod destructor-predicate-form ((pattern array-pattern) var)
+  `(typep ,var '(array
+		 ,(array-pattern-element-type pattern)
+		 ,(array-pattern-dimensions pattern))))
 
 (defstruct (vector-pattern (:include constructor-pattern)
                            (:constructor make-vector-pattern (&rest subpatterns))))
