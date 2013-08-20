@@ -145,9 +145,10 @@
        (string= (symbol-name sym) "_")))
 
 (defun numbered-underscore-p (sym)
-  (ppcre:register-groups-bind (numstr) ("_+([0-9]*)_+" (symbol-name sym))
-    (unless (string= numstr "")
-      (parse-integer numstr))))
+  (and (symbolp sym)
+       (ppcre:register-groups-bind (numstr) ("_+([0-9]*)_+" (symbol-name sym))
+	 (unless (string= numstr "")
+	   (parse-integer numstr)))))
 
 ;;;; structure and methods
 
