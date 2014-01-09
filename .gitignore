@@ -5,3 +5,4 @@
 *.dx32fsl
 *.lx64fsl
 *.x86f
+/lib/general-reader.lisp~
