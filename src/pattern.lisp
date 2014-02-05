@@ -3,8 +3,40 @@
 ;;; Data Destructor
 
 (defgeneric destructor-equal (dtor1 dtor2))
-(defgeneric destructor-predicate-form (dtor var))
-(defgeneric destructor-forms (dtor var))
+(defgeneric destructor-predicate-form (dtor var)
+  (:documentation
+   "
+destructor-predicate-form (dtor var) =>
+ predicate-form, bind-var-p, local-declaration-bodies
+
+dtor: A pattern object.
+var:  A symbol to be bound in the runtime.
+predicate-form: A form which should return a boolean.
+bind-var-p: A boolean.
+local-declaration-bodies: a list of valid declaration specifier.
+
+DTOR holds the information of the matching context.
+
+The result of evaluating PREDICATE-FORM indicates
+ whether the match is successful. 
+
+BIND-VAR-P tells the compiler if it should bind the
+ destructed value to the symbol VAR, with LET.
+
+After the compiler bound some values to the symbols appropriately,
+it DECLAREs some declarations specified in LOCAL-DECLARATION-BODIES
+with LOCALLY.
+"))
+(defgeneric destructor-forms (dtor var)
+  (:documentation
+  "
+destructor-forms (dtor var) => destructor-forms
+
+dtor: A pattern object.
+var:  A symbol that an object to be destructed is bound in runtime.
+destructor-forms: A list of forms.
+
+"))
 
 ;;; Pattern Data Structure
 
@@ -167,7 +199,9 @@
               (class-pattern-slot-names y))))
 
 (defmethod destructor-predicate-form ((pattern class-pattern) var)
-  `(typep ,var ',(class-pattern-class-name pattern)))
+  (values `(typep ,var ',(class-pattern-class-name pattern))
+	  nil
+	  `((type ,(class-pattern-class-name pattern) ,var))))
 
 (defmethod destructor-forms ((pattern class-pattern) var)
   (loop for slot-name in (class-pattern-slot-names pattern)
