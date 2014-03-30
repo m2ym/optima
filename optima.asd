@@ -23,26 +23,26 @@ specifiers are defined as follows:
                         | and-pattern
                         | constructor-pattern
                         | derived-pattern
-    
+
     constant-pattern ::= t | nil
                        | keyword
                        | atom-except-symbol
                        | (quote VALUE)
-    
+
     variable-pattern ::= SYMBOL | (variable SYMBOL)
-    
+
     place-pattern ::= (place SYMBOL)
-    
+
     guard-pattern ::= (guard PATTERN TEST-FORM)
-    
+
     not-pattern ::= (not PATTERN)
-    
+
     or-pattern ::= (or PATTERN*)
-    
+
     and-pattern ::= (and PATTERN*)
-    
+
     constructor-pattern ::= (NAME ARG*)
-    
+
     derived-pattern ::= (NAME PATTERN*)
 
 ### Constant-Pattern
@@ -213,7 +213,7 @@ Syntax:
 
     class-constructor-pattern ::= (class NAME slot*)
                                 | (NAME slot*)
-    
+
     slot ::= SLOT-NAME
            | (SLOT-NAME PATTERN*)
 
@@ -258,7 +258,7 @@ Syntax:
 
     structure-constructor-pattern ::= (structure CONC-NAME slot*)
                                     | (CONC-NAME slot*)
-    
+
     slot ::= SLOT-NAME
            | (SLOT-NAME PATTERN*)
 
@@ -303,7 +303,7 @@ style pattern syntax like:
 ### Derived-Pattern
 
 A derived-pattern is a pattern that is defined with DEFPATTERN. There
-are some builtin dervied patterns as below:
+are some builtin derived patterns as below:
 
 #### LIST
 
@@ -355,7 +355,7 @@ Define Constructor Patterns
 ---------------------------
 
 You can define your own constructor patterns by using `OPTIMA.CORE`
-package.  Firstly, define a data structore for the constructor
+package.  Firstly, define a data structure for the constructor
 pattern.
 
     (defstruct (my-cons-pattern (:include constructor-pattern)
@@ -374,7 +374,7 @@ pattern-matching can get more faster.
       t)
 
 Thirdly, define a destructor generator for the constructor pattern,
-whichs generate a destructor that specifies how to check the the
+which generate a destructor that specifies how to check the
 data (`PREDICATE-FORM`) and how to access the data (`ACCESSOR-FORMS`).
 
     (defmethod constructor-pattern-make-destructor ((pattern my-cons-pattern) var)
@@ -385,7 +385,7 @@ Finally, define a parser and an unparser for the constructor pattern.
 
     (defmethod parse-constructor-pattern ((name (eql 'my-cons)) &rest args)
       (apply #'make-my-cons-pattern (mapcar #'parse-pattern args)))
-    
+
     (defmethod unparse-pattern ((pattern my-cons-pattern))
       `(cons ,(unparse-pattern (my-cons-pattern-car-pattern pattern))
              ,(unparse-pattern (my-cons-pattern-cdr-pattern pattern))))
