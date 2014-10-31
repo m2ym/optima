@@ -125,28 +125,85 @@
                        :accessor-forms (list `(car ,it))))))
 
 (defstruct (vector-pattern (:include constructor-pattern)
-                           (:constructor make-vector-pattern (&rest subpatterns))))
+                           (:constructor make-vector-pattern (&rest subpatterns)))
+  (vector-type '(vector *))
+  (accessor 'aref))
 
 (defmethod constructor-pattern-destructor-sharable-p ((x vector-pattern) (y vector-pattern))
   (= (constructor-pattern-arity x)
      (constructor-pattern-arity y)))
 
 (defmethod constructor-pattern-make-destructor ((pattern vector-pattern) var)
-  (make-destructor :predicate-form `(typep ,var '(vector * ,(constructor-pattern-arity pattern)))
-                   :accessor-forms (loop for i from 0 below (constructor-pattern-arity pattern)
-                                         collect `(aref ,var ,i))))
+  (with-accessors ((vector-type vector-pattern-vector-type)
+                   (accessor vector-pattern-accessor)
+                   (arity constructor-pattern-arity)) pattern
+    (make-destructor :predicate-form `(typep ,var '(,@vector-type ,arity))
+                     :accessor-forms (loop for i from 0 below arity
+                                        collect `(,accessor ,var ,i)))))
 
-(defstruct (simple-vector-pattern (:include constructor-pattern)
-                                  (:constructor make-simple-vector-pattern (&rest subpatterns))))
+(defstruct (simple-vector-pattern (:include vector-pattern)
+                                  (:constructor
+                                      %make-simple-vector-pattern (subpatterns
+                                                                   &optional
+                                                                   (vector-type '(simple-vector))
+                                                                   (accessor 'svref)))))
 
-(defmethod constructor-pattern-destructor-sharable-p ((x simple-vector-pattern) (y simple-vector-pattern))
+(defun make-simple-vector-pattern (&rest subpatterns)
+  (%make-simple-vector-pattern subpatterns))
+
+(defstruct (vector*-pattern (:include vector-pattern)
+                            (:constructor make-vector*-pattern (&rest subpatterns))))
+
+(defmethod constructor-pattern-make-destructor ((pattern vector*-pattern) var)
+  (with-accessors ((vector-type vector-pattern-vector-type)
+                   (accessor vector-pattern-accessor)
+                   (arity constructor-pattern-arity)) pattern
+    (make-destructor :predicate-form `(and (typep ,var '(,@vector-type *))
+                                           (>= (length ,var) ,(1- arity)))
+                     :accessor-forms (loop for i from 0 below arity
+                                        collect (if (< i (1- arity))
+                                                    `(,accessor ,var ,i)
+                                                    `(subseq ,var ,i))))))
+
+(defstruct (simple-vector*-pattern (:include vector*-pattern)
+                                   (:constructor
+                                       %make-simple-vector*-pattern (subpatterns
+                                                                     &optional
+                                                                     (vector-type '(simple-vector))
+                                                                     (accessor 'svref)))))
+
+(defun make-simple-vector*-pattern (&rest subpatterns)
+  (%make-simple-vector*-pattern subpatterns))
+
+(defstruct (sequence-pattern (:include constructor-pattern)
+                             (:constructor make-sequence-pattern (&rest subpatterns))))
+
+(defmethod constructor-pattern-destructor-sharable-p ((x sequence-pattern) (y sequence-pattern))
   (= (constructor-pattern-arity x)
      (constructor-pattern-arity y)))
 
-(defmethod constructor-pattern-make-destructor ((pattern simple-vector-pattern) var)
-  (make-destructor :predicate-form `(typep ,var '(simple-vector ,(constructor-pattern-arity pattern)))
-                   :accessor-forms (loop for i from 0 below (constructor-pattern-arity pattern)
-                                         collect `(svref ,var ,i))))
+(defmethod constructor-pattern-make-destructor ((pattern sequence-pattern) var)
+  (with-accessors ((vector-type vector-pattern-vector-type)
+                   (accessor vector-pattern-accessor)
+                   (arity constructor-pattern-arity)) pattern
+    (make-destructor :predicate-form `(and (typep ,var 'sequence)
+                                           (length= ,var ,arity))
+                     :accessor-forms (loop for i from 0 below arity
+                                        collect `(elt ,var ,i)))))
+
+(defstruct (sequence*-pattern (:include sequence-pattern)
+                              (:constructor make-sequence*-pattern (&rest subpatterns))))
+
+(defmethod constructor-pattern-make-destructor ((pattern sequence*-pattern) var)
+  (with-accessors ((vector-type vector-pattern-vector-type)
+                   (accessor vector-pattern-accessor)
+                   (arity constructor-pattern-arity)) pattern
+    (make-destructor :predicate-form `(and (typep ,var 'sequence)
+                                           (>= (length ,var) ,(1- arity)))
+                     :accessor-forms (loop for i from 0 below arity
+                                        collect (if (< i (1- arity))
+                                                    `(elt ,var ,i)
+                                                    `(subseq ,var ,i))))))
 
 (defstruct (class-pattern (:include constructor-pattern)
                           (:constructor %make-class-pattern))
@@ -448,7 +505,7 @@ Examples:
 (defgeneric parse-constructor-pattern (name &rest args))
 
 (defmethod parse-constructor-pattern ((name (eql 'cons)) &rest args)
-  (unless (= (length args) 2)
+  (unless (length= 2 args)
     (error "Malformed pattern: ~S" (list* 'cons args)))
   (apply #'make-cons-pattern (mapcar #'parse-pattern args)))
 
@@ -465,6 +522,27 @@ Examples:
 
 (defmethod parse-constructor-pattern ((name (eql 'simple-vector)) &rest args)
   (apply #'make-simple-vector-pattern (mapcar #'parse-pattern args)))
+
+(defmethod parse-constructor-pattern ((name (eql 'vector*)) &rest args)
+  (unless args
+    (error "Malformed pattern: ~S: invalid number of arguments: ~D"
+           (list* name args) (length args)))
+  (apply #'make-vector*-pattern (mapcar #'parse-pattern args)))
+
+(defmethod parse-constructor-pattern ((name (eql 'simple-vector*)) &rest args)
+  (unless args
+    (error "Malformed pattern: ~S: invalid number of arguments: ~D"
+           (list* name args) (length args)))
+  (apply #'make-simple-vector*-pattern (mapcar #'parse-pattern args)))
+
+(defmethod parse-constructor-pattern ((name (eql 'sequence)) &rest args)
+  (apply #'make-sequence-pattern (mapcar #'parse-pattern args)))
+
+(defmethod parse-constructor-pattern ((name (eql 'sequence*)) &rest args)
+  (unless args
+    (error "Malformed pattern: ~S: invalid number of arguments: ~D"
+           (list* name args) (length args)))
+  (apply #'make-sequence*-pattern (mapcar #'parse-pattern args)))
 
 (defun parse-class-pattern (class-name &rest slot-specs)
   ;; Transform MAKE-INSTANCE style syntax.  During the transformation,
@@ -571,6 +649,18 @@ Examples:
 
 (defmethod unparse-pattern ((pattern simple-vector-pattern))
   `(simple-vector ,@(mapcar #'unparse-pattern (simple-vector-pattern-subpatterns pattern))))
+
+(defmethod unparse-pattern ((pattern vector*-pattern))
+  `(vector* ,@(mapcar #'unparse-pattern (vector*-pattern-subpatterns pattern))))
+
+(defmethod unparse-pattern ((pattern simple-vector*-pattern))
+  `(simple-vector* ,@(mapcar #'unparse-pattern (simple-vector*-pattern-subpatterns pattern))))
+
+(defmethod unparse-pattern ((pattern sequence-pattern))
+  `(sequence ,@(mapcar #'unparse-pattern (sequence-pattern-subpatterns pattern))))
+
+(defmethod unparse-pattern ((pattern sequence*-pattern))
+  `(sequence* ,@(mapcar #'unparse-pattern (sequence*-pattern-subpatterns pattern))))
 
 (defmethod unparse-pattern ((pattern class-pattern))
   `(class ,(class-pattern-class-name pattern)
