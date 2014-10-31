@@ -37,6 +37,12 @@
 (defmacro is-not-match (arg pattern)
   `(is-false (match ,arg (,pattern t))))
 
+(defmacro signals-on-expansion (form)
+  `(signals simple-error
+     (macroexpand ',form)))
+
+
+
 (test empty
   (is-true (match 1 (_ (fail)) (_ t))))
 
@@ -443,6 +449,183 @@
                ((ppcre "^(\\d+)-(\\d+)-(\\d+)$" year month day)
                 (list year month day)))
              '("2012" "11" "04"))))
+
+;; array
+
+(test array-1d-type
+  (is-true
+   (match (make-array 5)
+     ((array 5) t)))
+  (is-match (make-array 5) (array 5 :element-type t))
+  (is-match (make-array 5) (array 5 :element-type *))
+  (is-match (make-array 5) (array 5 :element-type t :contents _))
+  (is-match (make-array 5) (array 5 :element-type * :contents _))
+
+
+  
+  (is-not-match (make-array 5 :element-type 'fixnum)
+		(array 5 :element-type t))
+
+  (is-match (make-array 5 :element-type 'fixnum)
+		(array 5 :element-type *))
+
+  (is-not-match (make-array 5 :element-type t)
+		(array 5 :element-type fixnum))
+
+  (is-not-match (make-array 5 :element-type t)
+		(array 5 :element-type fixnum)))
+
+;; (test array-not-supported
+
+;;   ;; pattern in dimension
+;;   (signals-on-expansion (make-array 5) (array _))
+
+;;   ;; pattern in element type
+;;   (is-not-match (make-array 5) (array 5 :element-type _))
+;;   (is-not-match (make-array 5) (array 5 :element-type _ :contents _)))
+
+(test array-1d-content
+  
+  (is (equalp '(1 2 4 5)
+	      (match (make-array 5 :initial-contents '(1 2 3 4 5))
+		((array 5 :contents (a b _ d e))
+		 (list a b d e)))))
+  (is (equalp '(1 5)
+	      (match (make-array 5 :initial-contents '(1 2 3 4 5))
+		((array 5 :contents (a ___ e))
+		 (list a e)))))
+
+  
+  (is (equalp '(1 100)
+	      (match (make-array 100 :initial-contents
+				 (loop for i from 1 to 100
+				      collect i))
+		((array * :contents (a _98_ e))
+		 (list a e)))))
+
+  (signals-on-expansion
+    (match (make-array 5 :initial-contents '(1 2 3 4 5))
+      ((array 5 :contents (_ ___ _ ___ _))
+       t))))
+
+
+(test array-2d-type
+  (is-match (make-array '(5 3)) (array (5 3)))
+  (is-match (make-array '(5 3)) (array (5 3) :element-type t))
+  (is-match (make-array '(5 3)) (array (5 3) :element-type *))
+  (is-match (make-array '(5 3)) (array (5 3) :element-type t :contents _))
+  (is-match (make-array '(5 3)) (array (5 3) :element-type * :contents _)))
+
+
+(test array-2d-contents
+
+  (is (equalp
+       '(1 2 4 5)
+       (match (make-array '(3 5)
+			  :initial-contents
+			  '((1 2 3 4 5)
+			    (6 7 8 9 0)
+			    (1 2 3 4 5)))
+	 ((array (3 5)
+		 :contents
+		 ((a b _ d e) _ _))
+	  (list a b d e))))
+      "binding and _ failed")
+
+  (is (equalp
+       '(1 5 4 5)
+       (match (make-array '(6 5)
+			  :initial-contents
+			  '((1 2 3 4 5)
+			    (6 7 8 9 0)
+			    (6 7 8 9 0)
+			    (6 7 8 9 0)
+			    (6 7 8 9 0)
+			    (1 2 3 4 5)))
+	 ((array (6 5)
+		 :contents
+		 ((a ___ b) ___ (___ c d)))
+	  (list a b c d))))
+      "binding and ___ failed")
+
+  (is (equalp
+       '(1 5 4 5)
+       (match (make-array '(6 5)
+			  :initial-contents
+			  '((1 2 3 4 5)
+			    (6 7 8 9 0)
+			    (6 7 8 9 0)
+			    (6 7 8 9 0)
+			    (6 7 8 9 0)
+			    (1 2 3 4 5)))
+	 ((array (6 5)
+		 :contents
+		 ((a ___ b) _ ___ _ (___ c d)))
+	  (list a b c d))))
+      "binding, _ and ___ failed")
+
+  ;; * in dimension
+
+  (is (equalp
+       '(1 5 4 5)
+       (match (make-array '(6 5)
+			  :initial-contents
+			  '((1 2 3 4 5)
+			    (6 7 8 9 0)
+			    (6 7 8 9 0)
+			    (6 7 8 9 0)
+			    (6 7 8 9 0)
+			    (1 2 3 4 5)))
+	 ((array (6 *)
+		 :contents
+		 ((a _ _ _ b ___) _ _ _ _ (_ _ _ c d ___)))
+	  (list a b c d)))))
+
+  ;; invalid use of ___ (currently no `from the back' reference)
+  (signals-on-expansion
+    (match (make-array '(6 5)
+		       :initial-contents
+		       '((1 2 3 4 5)
+			 (6 7 8 9 0)
+			 (6 7 8 9 0)
+			 (6 7 8 9 0)
+			 (6 7 8 9 0)
+			 (1 2 3 4 5)))
+      ((array (6 *)
+	  :contents
+	  ((a ___ b) _ ___ _ (___ c d)))
+       (list a b c d))))
+
+  (signals-on-expansion
+    (match (make-array '(6 5)
+	       :initial-contents
+	       '((1 2 3 4 5)
+		 (6 7 8 9 0)
+		 (6 7 8 9 0)
+		 (6 7 8 9 0)
+		 (6 7 8 9 0)
+		 (1 2 3 4 5)))
+      ((array (* 5)
+	  :contents
+	  ((a ___ b) _ ___ _ (___ c d)))
+       (list a b c d))))
+
+  (is (equalp
+       '(2 32 34)
+       (match (make-array '(8 5)
+			  :initial-contents
+			  '((1 2 3 4 5)
+			    (11 12 13 14 15)
+			    (21 22 23 24 25)
+			    (31 32 33 34 35)
+			    (41 42 43 44 45)
+			    (51 52 53 54 55)
+			    (61 62 63 64 65)
+			    (71 72 73 74 75)))
+	 ((array (* *)
+		 :contents
+		 ((_ b ___) _ _ (_ c _ d ___) ___))
+	  (list b c d))))))
 
 ;;; Regression tests
 
