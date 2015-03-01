@@ -142,7 +142,8 @@
            #:place
            #:guard
            #:property
-           #:defpattern))
+           #:defpattern
+           #:<>))
 
 (defpackage :optima.extra
   (:use :cl :optima)

@@ -402,6 +402,7 @@ See the source code for more detail."
                              (:file "util")
                              (:file "runtime")
                              (:file "pattern")
+                             (:file "binding-pattern")
                              (:file "fail")
                              (:file "compiler")
                              (:file "match")
