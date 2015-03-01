@@ -58,7 +58,7 @@ Examples:
 ### Variable-Pattern
 
 A variable-pattern matches any value and binds the value to the
-variable. "_" and "otherwise" are special variable-patterns (a.k.a
+variable. \"_\" and \"otherwise\" are special variable-patterns (a.k.a
 wildcard-pattern) which match any value but doesn't bind.
 
 Examples:

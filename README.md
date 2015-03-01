@@ -355,7 +355,7 @@ for quasiquote expressions.
 Define Constructor Patterns
 ---------------------------
 
-You can define your own constructor patterns by using the `OPTIMA.CORE`
+You can define your own constructor patterns by using `OPTIMA.CORE`
 package.  First, define a data structore for the constructor
 pattern.
 
@@ -370,7 +370,6 @@ sync so that optima can take care of them.
 Second, specify a condition when destructor of the constructor patterns can be
 shared.  Sharing destructors removes redundant data checks, that is,
 pattern-matching can get more faster.
-
 
     (defmethod constructor-pattern-destructor-sharable-p ((x my-cons-pattern) (y my-cons-pattern))
       t)
@@ -445,9 +444,10 @@ Safe GETF.
 
 ### [Function] make-destructor
 
-    make-destructor &key ((bindings dum0) nil) ((predicate-form dum1) nil) ((accessor-forms
-                                                                             dum2)
-                                                                            nil)
+    make-destructor &key ((bindings bindings) nil) ((predicate-form predicate-form)
+                                                    nil) ((accessor-forms
+                                                           accessor-forms)
+                                                          nil)
 
 ### [Class] variable-pattern
 
@@ -783,7 +783,7 @@ the corresponding BODY and returns the evaluated value.  If no pattern matches,
 then returns NIL.
 
 Evaluating a form (FAIL) in the clause body causes the latest pattern
-matching to fail. For example,
+matching be failed. For example,
 
     (match 1
       (x (if (eql x 1)
@@ -864,8 +864,8 @@ be raised if none of the clauses match.
 
     fail
 
-Causes the latest pattern matching to fail.  After this failure, matching
-continues at the next pattern.
+Causes the latest pattern matching be failed and continue to do the
+rest of pattern matching.
 
 ### [Class] match-error
 
