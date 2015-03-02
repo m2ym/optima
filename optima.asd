@@ -354,7 +354,7 @@ for quasiquote expressions.
 Define Constructor Patterns
 ---------------------------
 
-You can define your own constructor patterns by using `OPTIMA.CORE`
+You can define your own constructor patterns by using the `OPTIMA.CORE`
 package.  First, define a data structore for the constructor
 pattern.
 

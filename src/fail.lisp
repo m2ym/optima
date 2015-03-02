@@ -34,8 +34,8 @@ to jump to ELSE branch."
   `(%or (if ,test ,then (fail)) ,else))
 
 (defmacro fail ()
-  "Causes the latest pattern matching be failed and continue to do the
-rest of pattern matching."
+  "Causes the latest pattern matching to fail.  After this failure,
+matching continues at the next pattern."
   ;; FIXME: Don't raise an error but expand to %FAIL for the hack
   ;; above.
   ;(error "Not pattern matching.")

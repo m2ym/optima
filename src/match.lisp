@@ -20,7 +20,7 @@ the corresponding BODY and returns the evaluated value.  If no pattern matches,
 then returns NIL.
 
 Evaluating a form (FAIL) in the clause body causes the latest pattern
-matching be failed. For example,
+matching to fail. For example,
 
     (match 1
       (x (if (eql x 1)

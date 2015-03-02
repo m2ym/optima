@@ -355,7 +355,7 @@ for quasiquote expressions.
 Define Constructor Patterns
 ---------------------------
 
-You can define your own constructor patterns by using `OPTIMA.CORE`
+You can define your own constructor patterns by using the `OPTIMA.CORE`
 package.  First, define a data structore for the constructor
 pattern.
 
@@ -783,7 +783,7 @@ the corresponding BODY and returns the evaluated value.  If no pattern matches,
 then returns NIL.
 
 Evaluating a form (FAIL) in the clause body causes the latest pattern
-matching be failed. For example,
+matching to fail. For example,
 
     (match 1
       (x (if (eql x 1)
@@ -864,8 +864,8 @@ be raised if none of the clauses match.
 
     fail
 
-Causes the latest pattern matching be failed and continue to do the
-rest of pattern matching.
+Causes the latest pattern matching to fail.  After this failure,
+matching continues at the next pattern.
 
 ### [Class] match-error
 
