@@ -309,7 +309,7 @@ occurence like:
       ((complex-pattern-p pattern)
        (let ((subpatterns (mapcar #'lift-guard-patterns (complex-pattern-subpatterns pattern))))
          (if (some #'guards-or-pattern-p subpatterns)
-             ;; Lift fitst OR pattern that include GUARD patterns like:
+             ;; Lift first OR pattern that include GUARD patterns like:
              ;; (c ... (or ... (guard p g) ...) ...) => (or ... (c ... (guard p g) ...) ...)
              (loop for i from 0
                    for subpattern in subpatterns
