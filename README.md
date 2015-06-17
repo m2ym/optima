@@ -1,9 +1,9 @@
 optima - Optimized Pattern Matching Library
 ===========================================
 
-optima is a very fast pattern matching library
-which uses optimizing techniques widely used in a functional
-programming world. See the following references for more detail:
+optima is a fast pattern matching library which uses optimizing
+techniques widely used in the functional programming world. See the
+following references for more details:
 
 * [Optimizing Pattern Matching](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.6.5507) by Fabrice Le Fessant, Luc Maranget
 * [The Implementation of Functional Programming Languages](http://research.microsoft.com/en-us/um/people/simonpj/papers/slpj-book-1987/) by Simon Peyton Jones
@@ -11,9 +11,9 @@ programming world. See the following references for more detail:
 Pattern Language
 ----------------
 
-A pattern specifier, or a pattern for short unless ambiguous, is an
-expression that describes how a value matches the pattern. Pattern
-specifiers are defined as follows:
+A pattern specifier, or a pattern for short ambiguous, is an
+expression that describes how a value matches some specification.
+Pattern specifiers are defined as follows:
 
     pattern-specifier ::= constant-pattern
                         | variable-pattern
@@ -24,26 +24,26 @@ specifiers are defined as follows:
                         | and-pattern
                         | constructor-pattern
                         | derived-pattern
-    
+
     constant-pattern ::= t | nil
                        | keyword
                        | atom-except-symbol
                        | (quote VALUE)
-    
+
     variable-pattern ::= SYMBOL | (variable SYMBOL)
-    
+
     place-pattern ::= (place SYMBOL)
-    
+
     guard-pattern ::= (guard PATTERN TEST-FORM)
-    
+
     not-pattern ::= (not PATTERN)
-    
+
     or-pattern ::= (or PATTERN*)
-    
+
     and-pattern ::= (and PATTERN*)
-    
+
     constructor-pattern ::= (NAME ARG*)
-    
+
     derived-pattern ::= (NAME PATTERN*)
 
 ### Constant-Pattern
@@ -60,7 +60,7 @@ Examples:
 
 A variable-pattern matches any value and binds the value to the
 variable. "_" and "otherwise" are special variable-patterns (a.k.a
-wildcard-pattern) which match any value but doesn't bind.
+wildcard-pattern) which match any value but don't bind.
 
 Examples:
 
@@ -73,8 +73,8 @@ Examples:
 
 ### Place-Pattern
 
-A place-pattern matches any value, in the same way as variable-patterns do, but binds the
-value with SYMBOL-MACROLET.
+A place-pattern matches any value, in the same way as
+variable-patterns do, but binds the value by using SYMBOL-MACROLET.
 
 Examples:
 
@@ -85,8 +85,8 @@ Examples:
 
 ### Guard-Pattern
 
-A guard-pattern is a special pattern that also tests whether TEST-FORM
-is satisfied in the current matching context.
+A guard-pattern is a special pattern that tests whether TEST-FORM is
+satisfied in the current matching context.
 
 Examples:
 
@@ -127,8 +127,8 @@ Examples:
 
 ### Constructor-Pattern
 
-A constructor-pattern matches the sub-components of a value based on its structure. 
-The following constructors are available:
+A constructor-pattern matches the sub-components of a value based on
+its structure. The following constructors are available:
 
 #### CONS
 
@@ -214,7 +214,7 @@ Syntax:
 
     class-constructor-pattern ::= (class NAME slot*)
                                 | (NAME slot*)
-    
+
     slot ::= SLOT-NAME
            | (SLOT-NAME PATTERN*)
 
@@ -247,9 +247,9 @@ You can also use MAKE-INSTANCE style pattern syntax like:
     => ("foo" 30)
 
 This is equal to the example above except this implicitly resolves the
-slot names using the Metaobject Protocol. In this case, you have to make
-sure the slot names can be determined uniquely during the
-compilation. Otherwise, you will get a compilation error.
+slot names using the Metaobject Protocol. In this case, you have to
+make sure the slot names can be determined uniquely during the
+compilation. Otherwise, you will get a compiler error.
 
 #### STRUCTURE
 
@@ -259,21 +259,21 @@ Syntax:
 
     structure-constructor-pattern ::= (structure CONC-NAME slot*)
                                     | (CONC-NAME slot*)
-    
+
     slot ::= SLOT-NAME
            | (SLOT-NAME PATTERN*)
 
-As in the CLASS constructor-pattern, STRUCTURE can be
-omitted. CONC-NAME is a prefix string of a predicate (CONC-NAME +
-"p") and accessors (CONC-NAME + SLOT-NAME). For example, if we have
-the following defstruct,
+As in the CLASS constructor-pattern, STRUCTURE can be omitted.
+CONC-NAME is a prefix string of a predicate (CONC-NAME + "p") and
+accessors (CONC-NAME + SLOT-NAME). For example, if we have the
+following defstruct,
 
     (defstruct person name age)
 
 the structure constructor-pattern (person- name age) is valid because
 PERSON-P, PERSON-NAME and PERSON-AGE are available here. Technically,
-we don't need an actual structure definition. If we have the following code, for
-instance,
+we don't need an actual structure definition. If we have the following
+code, for instance,
 
     (defun point-p (p) (consp p))
     (defun point-x (p) (car p))
@@ -304,7 +304,7 @@ style pattern syntax like:
 ### Derived-Pattern
 
 A derived-pattern is a pattern that is defined with DEFPATTERN. There
-are some builtin dervied patterns as below:
+are some builtin derived patterns as below:
 
 #### LIST
 
@@ -355,28 +355,35 @@ for quasiquote expressions.
 Define Constructor Patterns
 ---------------------------
 
-You can define your own constructor patterns by using the `OPTIMA.CORE`
-package.  First, define a data structore for the constructor
-pattern.
+You can define your own constructor patterns by using the
+`OPTIMA.CORE` package. First, define a data structure for the
+constructor pattern.
 
     (defstruct (my-cons-pattern (:include constructor-pattern)
                                 (:constructor make-cons-pattern (car-pattern cdr-pattern
                                                                  &aux (subpatterns (list car-pattern
                                                                                          cdr-pattern))))))
 
+    (defun cons-pattern-car-pattern (pattern)
+      (first (constructor-pattern-subpatterns pattern)))
+
+    (defun cons-pattern-cdr-pattern (pattern)
+      (second (constructor-pattern-subpatterns pattern)))
+
 Note that you must keep `SUBPATTERNS` of the constructor pattern in
 sync so that optima can take care of them.
 
-Second, specify a condition when destructor of the constructor patterns can be
-shared.  Sharing destructors removes redundant data checks, that is,
-pattern-matching can get more faster.
+Second, specify a condition for when the destructor of two constructor
+patterns can be shared. This makes it possible to perform some
+optimizations.
 
     (defmethod constructor-pattern-destructor-sharable-p ((x my-cons-pattern) (y my-cons-pattern))
       t)
 
-Third, define a destructor generator for the constructor pattern. The destructor
-generator will make a destructor that specifies how to check the the
-data (`PREDICATE-FORM`) and how to access the data (`ACCESSOR-FORMS`).
+Third, define a destructor generator for the constructor pattern. The
+destructor generator will make a destructor that specifies how to
+check the the data (`PREDICATE-FORM`) and how to access the data
+(`ACCESSOR-FORMS`).
 
     (defmethod constructor-pattern-make-destructor ((pattern my-cons-pattern) var)
       (make-destructor :predicate-form `(consp ,var)
@@ -386,7 +393,7 @@ Finally, define a parser and an unparser for the constructor pattern.
 
     (defmethod parse-constructor-pattern ((name (eql 'my-cons)) &rest args)
       (apply #'make-my-cons-pattern (mapcar #'parse-pattern args)))
-    
+
     (defmethod unparse-pattern ((pattern my-cons-pattern))
       `(cons ,(unparse-pattern (my-cons-pattern-car-pattern pattern))
              ,(unparse-pattern (my-cons-pattern-cdr-pattern pattern))))
@@ -400,7 +407,7 @@ See the source code for more detail.
 
     %equal a b
 
-Equality function for comparing patten constants.
+Equality function for comparing pattern constants.
 
 ### [Macro] %equals
 
