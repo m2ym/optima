@@ -1,9 +1,9 @@
 optima - Optimized Pattern Matching Library
 ===========================================
 
-optima is a fast pattern matching library which uses optimizing
-techniques widely used in the functional programming world. See the
-following references for more details:
+optima is a fast pattern matching library which
+uses optimizing techniques widely used in the functional programming
+world. See the following references for more details:
 
 * [Optimizing Pattern Matching](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.6.5507) by Fabrice Le Fessant, Luc Maranget
 * [The Implementation of Functional Programming Languages](http://research.microsoft.com/en-us/um/people/simonpj/papers/slpj-book-1987/) by Simon Peyton Jones
@@ -12,8 +12,8 @@ Pattern Language
 ----------------
 
 A pattern specifier, or a pattern for short ambiguous, is an
-expression that describes how a value matches some specification.
-Pattern specifiers are defined as follows:
+expression that describes how a value matches some
+specification. Pattern specifiers are defined as follows:
 
     pattern-specifier ::= constant-pattern
                         | variable-pattern
@@ -24,26 +24,17 @@ Pattern specifiers are defined as follows:
                         | and-pattern
                         | constructor-pattern
                         | derived-pattern
-
     constant-pattern ::= t | nil
                        | keyword
                        | atom-except-symbol
                        | (quote VALUE)
-
     variable-pattern ::= SYMBOL | (variable SYMBOL)
-
     place-pattern ::= (place SYMBOL)
-
     guard-pattern ::= (guard PATTERN TEST-FORM)
-
     not-pattern ::= (not PATTERN)
-
     or-pattern ::= (or PATTERN*)
-
     and-pattern ::= (and PATTERN*)
-
     constructor-pattern ::= (NAME ARG*)
-
     derived-pattern ::= (NAME PATTERN*)
 
 ### Constant-Pattern
@@ -214,7 +205,6 @@ Syntax:
 
     class-constructor-pattern ::= (class NAME slot*)
                                 | (NAME slot*)
-
     slot ::= SLOT-NAME
            | (SLOT-NAME PATTERN*)
 
@@ -259,14 +249,13 @@ Syntax:
 
     structure-constructor-pattern ::= (structure CONC-NAME slot*)
                                     | (CONC-NAME slot*)
-
     slot ::= SLOT-NAME
            | (SLOT-NAME PATTERN*)
 
-As in the CLASS constructor-pattern, STRUCTURE can be omitted.
-CONC-NAME is a prefix string of a predicate (CONC-NAME + "p") and
-accessors (CONC-NAME + SLOT-NAME). For example, if we have the
-following defstruct,
+As in the CLASS constructor-pattern, STRUCTURE can be
+omitted. CONC-NAME is a prefix string of a predicate (CONC-NAME +
+"p") and accessors (CONC-NAME + SLOT-NAME). For example, if we have
+the following defstruct,
 
     (defstruct person name age)
 
@@ -349,26 +338,20 @@ You may want to use a quasiquote in a pattern specifier like:
 
 To do so, you need to use a specific quasiquote reader, for example
 [fare-quasiquote](http://cliki.net/fare-quasiquote) , loading
-fare-quasiquote-optima system, because there is no standard expanded form
-for quasiquote expressions.
+fare-quasiquote-optima system, because there is no standard expanded
+form for quasiquote expressions.
 
 Define Constructor Patterns
 ---------------------------
 
 You can define your own constructor patterns by using the
-`OPTIMA.CORE` package. First, define a data structure for the
+`OPTIMA.CORE` package.  First, define a data structure for the
 constructor pattern.
 
     (defstruct (my-cons-pattern (:include constructor-pattern)
                                 (:constructor make-cons-pattern (car-pattern cdr-pattern
                                                                  &aux (subpatterns (list car-pattern
                                                                                          cdr-pattern))))))
-
-    (defun cons-pattern-car-pattern (pattern)
-      (first (constructor-pattern-subpatterns pattern)))
-
-    (defun cons-pattern-cdr-pattern (pattern)
-      (second (constructor-pattern-subpatterns pattern)))
 
 Note that you must keep `SUBPATTERNS` of the constructor pattern in
 sync so that optima can take care of them.
@@ -382,8 +365,8 @@ optimizations.
 
 Third, define a destructor generator for the constructor pattern. The
 destructor generator will make a destructor that specifies how to
-check the the data (`PREDICATE-FORM`) and how to access the data
-(`ACCESSOR-FORMS`).
+check the the data (`PREDICATE-FORM`) and how to access the
+data (`ACCESSOR-FORMS`).
 
     (defmethod constructor-pattern-make-destructor ((pattern my-cons-pattern) var)
       (make-destructor :predicate-form `(consp ,var)
@@ -393,7 +376,6 @@ Finally, define a parser and an unparser for the constructor pattern.
 
     (defmethod parse-constructor-pattern ((name (eql 'my-cons)) &rest args)
       (apply #'make-my-cons-pattern (mapcar #'parse-pattern args)))
-
     (defmethod unparse-pattern ((pattern my-cons-pattern))
       `(cons ,(unparse-pattern (my-cons-pattern-car-pattern pattern))
              ,(unparse-pattern (my-cons-pattern-cdr-pattern pattern))))

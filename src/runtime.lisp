@@ -1,7 +1,7 @@
 (in-package :optima)
 
 (defun %equal (a b)
-  "Equality function for comparing patten constants."
+  "Equality function for comparing pattern constants."
   (declare (optimize (speed 3) (safety 0) (space 0)))
   (or (equal a b)
       (cond ((and (stringp a) (stringp b))
