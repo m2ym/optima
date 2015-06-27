@@ -379,7 +379,7 @@ Examples:
 
 (defpattern list* (arg &rest args)
   (if (null args)
-      `(and ,arg (type list))
+      `,arg
       `(cons ,arg (list* ,@args))))
 
 (defpattern satisfies (predicate-name)
