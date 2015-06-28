@@ -165,7 +165,9 @@
   (is-match '() (list* _))
   (is-match '(1 2 3) (list* 1 2 (list 3)))
   (is-match '(1 2 3) (list* _))
-  (is-not-match 5 (list* _))
+  (is-match 5 (list* _))
+  (is-match '(1 2 . 3) (list* _ _ _))
+  (is-not-match '(1 2 . 3) (list* _ _ _ _))
   ;; alist
   (is-match '((1 . 2) (2 . 3) (3 . 4)) (alist (3 . 4) (1 . 2)))
   ;; plist
