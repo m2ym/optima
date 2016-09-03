@@ -394,9 +394,7 @@ See the source code for more detail."
                              (:file "fail")
                              (:file "compiler")
                              (:file "match")
-                             (:file "extra")))))
-
-(defmethod asdf:perform ((op asdf:test-op) (system (eql (asdf:find-system :optima))))
-  (asdf:load-system :optima.test)
-  (eval (read-from-string "(eos:run! 'optima.test::optima-test)"))
-  t)
+                             (:file "extra"))))
+  :in-order-to ((test-op (load-op :optima.test)))
+  :perform (test-op (o c)
+             (eval (read-from-string "(fiveam:run! 'optima.test::optima-test)"))))
