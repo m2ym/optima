@@ -1,3 +1,3 @@
 (asdf:defsystem :optima.test
-  :depends-on (:eos :optima :optima.ppcre)
+  :depends-on (:fiveam :optima :optima.ppcre)
   :components ((:file "test/suite")))
