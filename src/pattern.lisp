@@ -184,10 +184,12 @@
               (structure-pattern-slot-names y))))
 
 (defmethod constructor-pattern-make-destructor ((pattern structure-pattern) var)
-  (make-destructor :predicate-form `(,(symbolicate (structure-pattern-conc-name pattern) :p) ,var)
-                   :accessor-forms (loop with conc-name = (structure-pattern-conc-name pattern)
-                                         for slot-name in (structure-pattern-slot-names pattern)
-                                         collect `(,(symbolicate conc-name slot-name) ,var))))
+  (let* ((conc-name (structure-pattern-conc-name pattern))
+         (*package* (symbol-package conc-name)))
+    ;; TODO: How about CONC-NAME and SLOT-NAME being in different packages?
+    (make-destructor :predicate-form `(,(symbolicate conc-name :p) ,var)
+                     :accessor-forms (loop for slot-name in (structure-pattern-slot-names pattern)
+                                           collect `(,(symbolicate conc-name slot-name) ,var)))))
 
 ;;; Pattern Utilities
 
