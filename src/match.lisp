@@ -47,7 +47,7 @@ Examples:
     (match 1 (1 1))
     => 1
     (match 1 (2 2))
-    => 2
+    => NIL
     (match 1 (x x))
     => 1
     (match (list 1 2 3)
